@@ -17,7 +17,7 @@ public final class TicketGatewayService
 {
     public static void main(final String[] args) throws IOException
     {
-        val aeronDirectory = Config.driverPath(args[0]).toString();
+        val aeronDirectory = Config.driverPath("gateway").toString();
         val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory);
         val aeronCtx = new Aeron.Context().aeronDirectoryName(aeronDirectory);
         val availabilityHandler = new ImageAvailabilityHandler();

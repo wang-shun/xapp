@@ -17,9 +17,9 @@ public final class TicketEngineService
 {
     public static void main(final String[] args)
     {
-        val aeronDirectory = Config.driverPath(args[0]).toString();
+        val aeronDirectory = Config.driverPath("engine").toString();
         val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory);
-        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath(args[0]).toString()).
+        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath("engine").toString()).
                 aeronDirectoryName(aeronDirectory).controlChannel(Config.archiveControlRequestChannel()).
                 recordingEventsChannel(Config.archiveRecordingEventsChannel());
         val aeronCtx = new Aeron.Context().aeronDirectoryName(aeronDirectory);
