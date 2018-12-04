@@ -25,6 +25,7 @@ public final class TicketEngine implements TicketEngineInput
     @Override
     public void buyTicket(final long userId, final long eventId)
     {
+        System.out.printf("engine buy(%d, %d)%n", userId, eventId);
         if (eventMap.containsKey(eventId))
         {
             val event = eventMap.get(eventId);

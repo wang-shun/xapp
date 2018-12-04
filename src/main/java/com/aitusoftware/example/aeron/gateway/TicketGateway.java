@@ -3,17 +3,23 @@ package com.aitusoftware.example.aeron.gateway;
 import com.aitusoftware.example.aeron.engine.FailureReason;
 import com.aitusoftware.example.aeron.engine.TicketEngineInput;
 import com.aitusoftware.example.aeron.engine.TicketEngineOutput;
+import com.aitusoftware.example.aeron.service.CloseableExecutor;
+import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.spi.HttpServerProvider;
 import lombok.val;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
+
+import static com.aitusoftware.example.aeron.gateway.UriParameterExtractor.extractNumberParam;
 
 public final class TicketGateway implements TicketEngineOutput
 {
     private final TicketEngineInput ticketEngineInput;
+    private HttpServer server;
 
     public TicketGateway(final TicketEngineInput ticketEngineInput)
     {
@@ -46,21 +52,25 @@ public final class TicketGateway implements TicketEngineOutput
 
     private void register(final long userId, final long eventId)
     {
+        System.out.printf("gateway register(%d, %d)%n", userId, eventId);
         ticketEngineInput.registerForEvent(userId, eventId);
     }
 
     private void buy(final long userId, final long eventId)
     {
+        System.out.printf("gateway buy(%d, %d)%n", userId, eventId);
         ticketEngineInput.buyTicket(userId, eventId);
     }
 
-    public void startServer() throws IOException
+    public void startServer(final CloseableExecutor executor) throws IOException
     {
-        val server = HttpServerProvider.provider().createHttpServer(
-                new InetSocketAddress("localhost", 8080), 10);
+        server = HttpServerProvider.provider().createHttpServer(
+                new InetSocketAddress("0.0.0.0", 8080), 10);
+        server.setExecutor(executor);
         val context = server.createContext("/ticket");
         context.setHandler(exchange -> {
             val uri = exchange.getRequestURI().toString();
+            System.out.printf("Received request on URI %s%n", uri);
             if (uri.contains("/create"))
             {
                 createEvent((int) extractNumberParam(uri, "ticketCount"));
@@ -74,19 +84,16 @@ public final class TicketGateway implements TicketEngineOutput
                 buy(extractNumberParam(uri, "userId"), extractNumberParam(uri, "eventId"));
             }
 
-            exchange.sendResponseHeaders(200, 0);
+            exchange.sendResponseHeaders(200, 2);
+            exchange.getResponseBody().write("OK".getBytes(StandardCharsets.UTF_8));
+            exchange.getResponseBody().close();
         });
         server.start();
     }
 
-    private static long extractNumberParam(final String input, final String paramName)
+    public void stopServer()
     {
-        val matcher = Pattern.compile("%s=([0-9]+)").matcher(input);
-        if (matcher.find())
-        {
-            return Long.parseLong(matcher.group(1));
-        }
-
-        return Long.MIN_VALUE;
+        Optional.ofNullable(server).ifPresent(server -> server.stop(1));
     }
+
 }

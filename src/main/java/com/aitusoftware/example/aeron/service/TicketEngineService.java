@@ -4,6 +4,7 @@ import com.aitusoftware.example.aeron.Config;
 import com.aitusoftware.example.aeron.engine.EngineMessageHandler;
 import com.aitusoftware.example.aeron.engine.TicketEngine;
 import com.aitusoftware.example.aeron.engine.TicketEngineOutputPublisher;
+import com.aitusoftware.example.aeron.util.CompositeCloseable;
 import com.aitusoftware.example.aeron.util.ShutdownBarrierSingleton;
 import io.aeron.Aeron;
 import io.aeron.archive.Archive;
@@ -17,6 +18,14 @@ public final class TicketEngineService
 {
     public static void main(final String[] args)
     {
+        try (val closeable = launch())
+        {
+            ShutdownBarrierSingleton.barrier().await();
+        }
+    }
+
+    public static CompositeCloseable launch()
+    {
         val aeronDirectory = Config.driverPath("engine").toString();
         val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory);
         val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath("engine").toString()).
@@ -26,18 +35,19 @@ public final class TicketEngineService
         val availabilityHandler = new ImageAvailabilityHandler();
         val archiveClientCtx = Config.archiveClientContext(10).
                 aeronDirectoryName(driverCtx.aeronDirectoryName());
-        try (val driver = ArchivingMediaDriver.launch(driverCtx, archiveCtx);
-             val aeron = Aeron.connect(aeronCtx);
-             val archiveClient = AeronArchive.connect(archiveClientCtx);
-             val publication = archiveClient.addRecordedPublication(Config.applicationOutputChannelSpec(), 1);
-             val subscription = aeron.addSubscription(Config.applicationInputChannelSpec(), 1,
-                     availabilityHandler, availabilityHandler);
-             val executor = new CloseableExecutor())
-        {
-            val ticketEngine = new TicketEngine(new TicketEngineOutputPublisher(publication));
-            executor.execute(new EngineMessageHandler(ticketEngine, subscription, new SleepingMillisIdleStrategy(10L)));
 
-            ShutdownBarrierSingleton.barrier().await();
-        }
+        val driver = ArchivingMediaDriver.launch(driverCtx, archiveCtx);
+        val aeron = Aeron.connect(aeronCtx);
+        val archiveClient = AeronArchive.connect(archiveClientCtx);
+        val publication = archiveClient.addRecordedPublication(Config.applicationOutputChannelSpec(), 1);
+        val subscription = aeron.addSubscription(Config.applicationInputChannelSpec(), 1,
+                availabilityHandler, availabilityHandler);
+        val executor = new CloseableExecutor();
+
+        val closeable = new CompositeCloseable(driver, aeron, archiveClient, publication, subscription, executor);
+        val ticketEngine = new TicketEngine(new TicketEngineOutputPublisher(publication));
+        executor.execute(new EngineMessageHandler(ticketEngine, subscription, new SleepingMillisIdleStrategy(10L)));
+
+        return closeable;
     }
 }

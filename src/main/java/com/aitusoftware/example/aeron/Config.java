@@ -44,6 +44,11 @@ public final class Config
         return localChannel(16005);
     }
 
+    public static String replayChannel()
+    {
+        return localChannel(16010);
+    }
+
     public static AeronArchive.Context archiveClientContext(final int offset)
     {
         return new AeronArchive.Context().

@@ -86,8 +86,14 @@ public final class GatewayMessageHandler implements FragmentHandler, Runnable
         }
     }
 
+    private Subscription replaySubscription;
+
     private void checkForRecordings()
     {
+        if (replaySubscription != null)
+        {
+            replaySubscription.poll(this, 100);
+        }
         if (System.nanoTime() > nextRecordingQueryTimestamp)
         {
             archive.listRecordingsForUri(0, Integer.MAX_VALUE,
@@ -111,8 +117,13 @@ public final class GatewayMessageHandler implements FragmentHandler, Runnable
                                                           String originalChannel,
                                                           String sourceIdentity)
                         {
-                            System.out.printf("recordingDescriptor: %s: recording: %d, start: %d, stop: %d%n",
-                                    originalChannel, recordingId, startPosition, stopPosition);
+                            System.out.printf("recordingDescriptor: %s (%s): recording: %d, start: %d, stop: %d%n",
+                                    originalChannel, strippedChannel, recordingId, startPosition, stopPosition);
+                            if (stopPosition > 0 && replaySubscription == null)
+                            {
+                                archive.startReplay(recordingId, 0, stopPosition, Config.replayChannel(), 0);
+                                replaySubscription = archive.context().aeron().addSubscription(Config.replayChannel(), 0);
+                            }
                         }
                     });
             nextRecordingQueryTimestamp = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
