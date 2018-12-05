@@ -5,6 +5,7 @@ import com.aitusoftware.example.aeron.engine.FailureReason;
 import com.aitusoftware.example.aeron.engine.TicketEngineOutput;
 import com.aitusoftware.example.aeron.util.Message;
 import com.aitusoftware.example.aeron.util.MessageConstants;
+import io.aeron.FragmentAssembler;
 import io.aeron.Subscription;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.archive.client.RecordingDescriptorConsumer;
@@ -23,24 +24,32 @@ public final class GatewayMessageHandler implements FragmentHandler, Runnable
     private final Subscription subscription;
     private final IdleStrategy idleStrategy;
     private final AeronArchive archive;
+    private final RecordingProgressListener progressListener;
     private final Message message = new Message();
+    private final FragmentHandler fragmentHandler = new FragmentAssembler(this);
     private long nextRecordingQueryTimestamp;
 
     public GatewayMessageHandler(
             final TicketEngineOutput ticketEngineOutput,
             final Subscription subscription,
             final IdleStrategy idleStrategy,
-            final AeronArchive archive)
+            final AeronArchive archive,
+            final RecordingProgressListener progressListener)
     {
         this.ticketEngineOutput = ticketEngineOutput;
         this.subscription = subscription;
         this.idleStrategy = idleStrategy;
         this.archive = archive;
+        this.progressListener = progressListener;
     }
 
     @Override
     public void onFragment(final DirectBuffer buffer, final int offset, final int length, final Header header)
     {
+        if (replaying)
+        {
+            System.out.println("Replaying message");
+        }
         message.reset(buffer, offset, length);
         val topicId = message.getInt();
         switch (topicId)
@@ -80,19 +89,22 @@ public final class GatewayMessageHandler implements FragmentHandler, Runnable
     {
         while (!Thread.currentThread().isInterrupted())
         {
-            final int workDone = subscription.poll(this, 100);
+            final int workDone = subscription.poll(fragmentHandler, 100);
             checkForRecordings();
-            idleStrategy.idle(workDone);
+            idleStrategy.idle(workDone + (progressListener != null ? progressListener.doWork() : 0));
         }
     }
 
     private Subscription replaySubscription;
+    private boolean replaying;
 
     private void checkForRecordings()
     {
         if (replaySubscription != null)
         {
-            replaySubscription.poll(this, 100);
+            replaying = true;
+            replaySubscription.poll(fragmentHandler, 100);
+            replaying = false;
         }
         if (System.nanoTime() > nextRecordingQueryTimestamp)
         {
@@ -117,9 +129,7 @@ public final class GatewayMessageHandler implements FragmentHandler, Runnable
                                                           String originalChannel,
                                                           String sourceIdentity)
                         {
-                            System.out.printf("recordingDescriptor: %s (%s): recording: %d, start: %d, stop: %d%n",
-                                    originalChannel, strippedChannel, recordingId, startPosition, stopPosition);
-                            if (stopPosition > 0 && replaySubscription == null)
+                            if (stopPosition > 0 && replaySubscription == null && originalChannel.startsWith(Config.applicationOutputChannelSpec()))
                             {
                                 archive.startReplay(recordingId, 0, stopPosition, Config.replayChannel(), 0);
                                 replaySubscription = archive.context().aeron().addSubscription(Config.replayChannel(), 0);

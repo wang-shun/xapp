@@ -2,6 +2,7 @@ package com.aitusoftware.example.aeron.engine;
 
 import com.aitusoftware.example.aeron.util.Message;
 import com.aitusoftware.example.aeron.util.MessageConstants;
+import io.aeron.FragmentAssembler;
 import io.aeron.Subscription;
 import io.aeron.logbuffer.FragmentHandler;
 import io.aeron.logbuffer.Header;
@@ -15,6 +16,7 @@ public final class EngineMessageHandler implements FragmentHandler, Runnable
     private final Subscription subscription;
     private final IdleStrategy idleStrategy;
     private final Message message = new Message();
+    private final FragmentHandler handler = new FragmentAssembler(this);
 
     public EngineMessageHandler(
             final TicketEngineInput ticketEngineInput,
@@ -68,7 +70,7 @@ public final class EngineMessageHandler implements FragmentHandler, Runnable
     {
         while (!Thread.currentThread().isInterrupted())
         {
-            final int workDone = subscription.poll(this, 100);
+            final int workDone = subscription.poll(handler, 100);
             idleStrategy.idle(workDone);
         }
     }

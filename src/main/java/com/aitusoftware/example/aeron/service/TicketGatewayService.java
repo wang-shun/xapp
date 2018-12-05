@@ -3,6 +3,7 @@ package com.aitusoftware.example.aeron.service;
 import com.aitusoftware.example.aeron.Config;
 import com.aitusoftware.example.aeron.engine.TicketEngineInputPublisher;
 import com.aitusoftware.example.aeron.gateway.GatewayMessageHandler;
+import com.aitusoftware.example.aeron.gateway.RecordingProgressListener;
 import com.aitusoftware.example.aeron.gateway.TicketGateway;
 import com.aitusoftware.example.aeron.util.CompositeCloseable;
 import com.aitusoftware.example.aeron.util.ShutdownBarrierSingleton;
@@ -38,9 +39,13 @@ public final class TicketGatewayService
                 availabilityHandler, availabilityHandler);
         val executor = new CloseableExecutor();
         val archive = AeronArchive.connect(archiverContext);
+        val recordingEventsSubscription = aeron.addSubscription(
+                Config.archiveRecordingEventsChannel(),
+                AeronArchive.Configuration.recordingEventsStreamId());
         val ticketGateway = new TicketGateway(new TicketEngineInputPublisher(publication));
-        val closeable = new CompositeCloseable(driver, aeron, publication, subscription, executor, archive, ticketGateway::stopServer);
-        executor.execute(new GatewayMessageHandler(ticketGateway, subscription, new SleepingMillisIdleStrategy(10L), archive));
+        val closeable = new CompositeCloseable(driver, aeron, publication, subscription, executor, archive, recordingEventsSubscription, ticketGateway::stopServer);
+        executor.execute(new GatewayMessageHandler(ticketGateway, subscription, new SleepingMillisIdleStrategy(10L), archive,
+                new RecordingProgressListener(recordingEventsSubscription)));
         ticketGateway.startServer(executor);
 
         return closeable;
