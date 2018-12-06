@@ -8,11 +8,15 @@ import com.aitusoftware.example.aeron.util.CompositeCloseable;
 import com.aitusoftware.example.aeron.util.ShutdownBarrierSingleton;
 import io.aeron.Aeron;
 import io.aeron.archive.Archive;
+import io.aeron.archive.ArchiveThreadingMode;
 import io.aeron.archive.ArchivingMediaDriver;
 import io.aeron.archive.client.AeronArchive;
 import io.aeron.driver.MediaDriver;
+import io.aeron.driver.ThreadingMode;
 import lombok.val;
 import org.agrona.concurrent.SleepingMillisIdleStrategy;
+
+import static com.aitusoftware.example.aeron.Config.IDLE_STRATEGY;
 
 public final class TicketEngineService
 {
@@ -27,10 +31,13 @@ public final class TicketEngineService
     public static CompositeCloseable launch()
     {
         val aeronDirectory = Config.driverPath("engine").toString();
-        val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory);
+        val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory).
+                conductorIdleStrategy(IDLE_STRATEGY).receiverIdleStrategy(IDLE_STRATEGY).
+                senderIdleStrategy(IDLE_STRATEGY).threadingMode(ThreadingMode.SHARED);
         val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath("engine").toString()).
                 aeronDirectoryName(aeronDirectory).controlChannel(Config.archiveControlRequestChannel()).
-                recordingEventsChannel(Config.archiveRecordingEventsChannel());
+                recordingEventsChannel(Config.archiveRecordingEventsChannel()).idleStrategySupplier(() -> IDLE_STRATEGY).
+                threadingMode(ArchiveThreadingMode.SHARED);
         val aeronCtx = new Aeron.Context().aeronDirectoryName(aeronDirectory);
         val availabilityHandler = new ImageAvailabilityHandler();
         val archiveClientCtx = Config.archiveClientContext(10).

@@ -1,70 +1,44 @@
 package com.aitusoftware.example.aeron.engine;
 
-import com.aitusoftware.example.aeron.util.Parameters;
+import com.aitusoftware.example.aeron.util.Publisher;
+import com.aitusoftware.example.aeron.util.PublisherReceiver;
 import io.aeron.Publication;
-import org.agrona.concurrent.UnsafeBuffer;
 
-import java.nio.ByteBuffer;
-
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_EVENT_CREATED_ID;
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_TICKET_ASSIGNED_ID;
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_TICKET_REQUEST_FAILED_ID;
-
-public final class TicketEngineOutputPublisher implements TicketEngineOutput
+public final class TicketEngineOutputPublisher implements TicketEngineOutput, PublisherReceiver
 {
-    private static final int MAX_MESSAGE_LENGTH = 28;
-    private final Publication publication;
-    private final UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.allocateDirect(MAX_MESSAGE_LENGTH));
-    private final Parameters parameters = new Parameters();
+    private final GenericEngineOutputPublisher genericEngineOutputPublisher =
+            new GenericEngineOutputPublisher();
+    private Publisher publisher;
 
     public TicketEngineOutputPublisher(final Publication publication)
     {
-        this.publication = publication;
+        this.publisher = publication::offer;
+    }
+
+    public TicketEngineOutputPublisher()
+    {
     }
 
     @Override
     public void eventCreated(final long eventId)
     {
-        parameters.reset(buffer);
-        parameters.pushInt(TOPIC_EVENT_CREATED_ID);
-        parameters.pushLong(eventId);
-        long offerResult;
-        do
-        {
-            offerResult = publication.offer(buffer, 0, parameters.length());
-        }
-        while (offerResult < 0);
+        genericEngineOutputPublisher.publishEventCreated(eventId, publisher);
     }
 
     @Override
     public void ticketAssigned(final long userId, final long eventId, final long ticketId)
     {
-        parameters.reset(buffer);
-        parameters.pushInt(TOPIC_TICKET_ASSIGNED_ID);
-        parameters.pushLong(userId);
-        parameters.pushLong(eventId);
-        parameters.pushLong(ticketId);
-        long offerResult;
-        do
-        {
-            offerResult = publication.offer(buffer, 0, parameters.length());
-        }
-        while (offerResult < 0);
+        genericEngineOutputPublisher.publishTicketAssigned(userId, eventId, ticketId, publisher);
     }
 
     @Override
     public void ticketRequestFailed(final long userId, final long eventId, final FailureReason failureReason)
     {
-        parameters.reset(buffer);
-        parameters.pushInt(TOPIC_TICKET_REQUEST_FAILED_ID);
-        parameters.pushLong(userId);
-        parameters.pushLong(eventId);
-        parameters.pushInt(failureReason.ordinal());
-        long offerResult;
-        do
-        {
-            offerResult = publication.offer(buffer, 0, parameters.length());
-        }
-        while (offerResult < 0);
+        genericEngineOutputPublisher.publishTicketRequestFailed(userId, eventId, failureReason, publisher);
+    }
+
+    public void setPublisher(final Publisher publisher)
+    {
+        this.publisher = publisher;
     }
 }

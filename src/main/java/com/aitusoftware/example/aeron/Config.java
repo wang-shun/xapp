@@ -1,12 +1,14 @@
 package com.aitusoftware.example.aeron;
 
 import io.aeron.archive.client.AeronArchive;
+import org.agrona.concurrent.SleepingMillisIdleStrategy;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public final class Config
 {
+    public static final SleepingMillisIdleStrategy IDLE_STRATEGY = new SleepingMillisIdleStrategy(10L);
     private static final Path DRIVER_ROOT_PATH = Paths.get("/dev/shm");
     private static final int APPLICATION_INPUT_PORT = 15678;
     private static final int APPLICATION_OUTPUT_PORT = 15680;
@@ -17,6 +19,10 @@ public final class Config
 
     public static Path archivePath(final String service) {
         return DRIVER_ROOT_PATH.resolve(service).resolve("archive");
+    }
+
+    public static Path clusterPath(final String service) {
+        return DRIVER_ROOT_PATH.resolve(service).resolve("cluster");
     }
 
     public static String applicationInputChannelSpec()
