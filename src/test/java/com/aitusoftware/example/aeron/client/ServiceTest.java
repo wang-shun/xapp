@@ -19,7 +19,7 @@ class ServiceTest
     @Test
     void shouldCreateAndRegisterForEvent() throws UnirestException, IOException
     {
-        try (val engine = TicketEngineService.launch(); val gateway = TicketGatewayService.launch())
+        try (val engine = TicketEngineService.launch(); val gateway = TicketGatewayService.launchAsStandaloneClient())
         {
             handleResponse(Unirest.get("http://localhost:8080/ticket/create?ticketCount=100"));
             LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));

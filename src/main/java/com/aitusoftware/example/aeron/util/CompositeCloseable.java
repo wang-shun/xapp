@@ -4,7 +4,7 @@ import org.agrona.CloseHelper;
 
 import java.util.Arrays;
 
-public class CompositeCloseable implements AutoCloseable
+public final class CompositeCloseable implements AutoCloseable
 {
     private final AutoCloseable[] closeables;
 

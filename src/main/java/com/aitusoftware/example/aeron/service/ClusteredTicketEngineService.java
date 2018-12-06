@@ -19,8 +19,7 @@ import static com.aitusoftware.example.aeron.Config.IDLE_STRATEGY;
 
 public final class ClusteredTicketEngineService
 {
-
-    private static final String SERVICE_NAME = "engine";
+    static final String ENGINE_SERVICE_NAME = "engine";
 
     public static void main(final String[] args)
     {
@@ -32,15 +31,15 @@ public final class ClusteredTicketEngineService
 
     public static CompositeCloseable launch()
     {
-        val aeronDirectory = Config.driverPath(SERVICE_NAME).toString();
+        val aeronDirectory = Config.driverPath(ENGINE_SERVICE_NAME).toString();
         val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory).
                 conductorIdleStrategy(IDLE_STRATEGY).receiverIdleStrategy(IDLE_STRATEGY).
                 senderIdleStrategy(IDLE_STRATEGY).threadingMode(ThreadingMode.SHARED);
-        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath(SERVICE_NAME).toString()).
+        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath(ENGINE_SERVICE_NAME).toString()).
                 aeronDirectoryName(aeronDirectory).controlChannel(Config.archiveControlRequestChannel()).
                 recordingEventsChannel(Config.archiveRecordingEventsChannel()).idleStrategySupplier(() -> IDLE_STRATEGY).
                 threadingMode(ArchiveThreadingMode.SHARED);
-        val clusterDirectoryName = Config.clusterPath(SERVICE_NAME).toString();
+        val clusterDirectoryName = Config.clusterPath(ENGINE_SERVICE_NAME).toString();
         val consensusModuleCtx = new ConsensusModule.Context().aeronDirectoryName(aeronDirectory).
                 clusterDirectoryName(clusterDirectoryName).idleStrategySupplier(() -> IDLE_STRATEGY);
         val engineOutputPublisher = new TicketEngineOutputPublisher();

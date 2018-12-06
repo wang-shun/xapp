@@ -1,23 +1,21 @@
 package com.aitusoftware.example.aeron.engine;
 
 import com.aitusoftware.example.aeron.util.Parameters;
-import io.aeron.Publication;
+import com.aitusoftware.example.aeron.util.Publisher;
 import org.agrona.concurrent.UnsafeBuffer;
 
 import java.nio.ByteBuffer;
 
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_BUY_TICKET_ID;
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_CREATE_EVENT_ID;
-import static com.aitusoftware.example.aeron.util.MessageConstants.TOPIC_REGISTER_FOR_EVENT_ID;
+import static com.aitusoftware.example.aeron.util.MessageConstants.*;
 
 public final class TicketEngineInputPublisher implements TicketEngineInput
 {
     private static final int MAX_MESSAGE_LENGTH = 24;
-    private final Publication publication;
+    private final Publisher publication;
     private final UnsafeBuffer buffer = new UnsafeBuffer(ByteBuffer.allocateDirect(MAX_MESSAGE_LENGTH));
     private final Parameters parameters = new Parameters();
 
-    public TicketEngineInputPublisher(final Publication publication)
+    public TicketEngineInputPublisher(final Publisher publication)
     {
         this.publication = publication;
     }

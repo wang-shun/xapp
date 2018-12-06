@@ -35,13 +35,13 @@ public final class ClusteredTicketEngine implements ClusteredService
     @Override
     public void onSessionOpen(ClientSession session, long timestampMs)
     {
-
+        publisherReceiver.addPublisher(session.id(), session::offer);
     }
 
     @Override
     public void onSessionClose(ClientSession session, long timestampMs, CloseReason closeReason)
     {
-
+        publisherReceiver.removePublisher(session.id());
     }
 
     @Override

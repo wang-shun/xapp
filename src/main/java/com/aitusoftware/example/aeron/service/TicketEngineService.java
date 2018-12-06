@@ -17,6 +17,7 @@ import lombok.val;
 import org.agrona.concurrent.SleepingMillisIdleStrategy;
 
 import static com.aitusoftware.example.aeron.Config.IDLE_STRATEGY;
+import static com.aitusoftware.example.aeron.service.ClusteredTicketEngineService.ENGINE_SERVICE_NAME;
 
 public final class TicketEngineService
 {
@@ -30,11 +31,11 @@ public final class TicketEngineService
 
     public static CompositeCloseable launch()
     {
-        val aeronDirectory = Config.driverPath("engine").toString();
+        val aeronDirectory = Config.driverPath(ENGINE_SERVICE_NAME).toString();
         val driverCtx = new MediaDriver.Context().aeronDirectoryName(aeronDirectory).
                 conductorIdleStrategy(IDLE_STRATEGY).receiverIdleStrategy(IDLE_STRATEGY).
                 senderIdleStrategy(IDLE_STRATEGY).threadingMode(ThreadingMode.SHARED);
-        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath("engine").toString()).
+        val archiveCtx = new Archive.Context().archiveDirectoryName(Config.archivePath(ENGINE_SERVICE_NAME).toString()).
                 aeronDirectoryName(aeronDirectory).controlChannel(Config.archiveControlRequestChannel()).
                 recordingEventsChannel(Config.archiveRecordingEventsChannel()).idleStrategySupplier(() -> IDLE_STRATEGY).
                 threadingMode(ArchiveThreadingMode.SHARED);
