@@ -1,0 +1,11 @@
+namespace com.aitusoftware.example.messages;
+
+table CreateEvent {
+  ticketCount: int;
+  ticketSalesStart: int;
+  ticketSalesEnd: int;
+}
+
+// final int ticketCount, final long ticketSalesStart, final long ticketSalesEnd
+
+root_type CreateEvent;
